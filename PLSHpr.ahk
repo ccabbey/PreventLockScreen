@@ -1,8 +1,17 @@
+/************************************************************************
+ * @description 
+ * @author 
+ * @date 2025/06/20
+ * @version 1.2.1
+ *  - 优化：如果用户主动锁定了电脑，禁用锁屏功能会自动关闭。否则电脑屏幕息屏后仍然会被定时器唤醒。
+ ***********************************************************************/
+
+
 #requires AutoHotkey v2.0
 
 #Include "blackout.ahk"
 
-VERSION:= "锁屏助手 v1.2.0"
+VERSION:= "锁屏助手 v1.2.1"
 A_IconTip:= VERSION
 
 
@@ -26,6 +35,14 @@ SetTimer ()=> TrayTip(), -5000
 ;通过定时移动光标来防止屏幕保护程序启动
 PreventLock() {
     global preventLock_on
+    ; disable prevent lock function if detect user manully locked the screen
+    if IsScreenLocked && preventLock_on{
+        SetTimer MoveCursor, 0
+        TrayTip  "由于用户主动锁定了电脑，自动锁屏已恢复","注意",  1
+        SetTimer ()=> TrayTip(), -2000
+        t.ToggleCheck("禁用锁屏")
+
+    }
     preventLock_on:=!preventLock_on ; Toggle prevent lock state
     if (preventLock_on) {
         SetTimer MoveCursor, 60000 ; Screen-saver launch prevention label (subroutine), checks every 1 minute
@@ -116,4 +133,11 @@ NoAction(*) {
 
 +ESC:: {    ;Shift+ESC to toggle blackout
     ToggleBlackoutOnly()
+}
+
+IsScreenLocked() {
+	if h := DllCall("User32\OpenInputDesktop","int",0,"int",0,"int",1,"ptr")
+		return false
+	DllCall("User32\CloseDesktop","ptr",h)
+	return true
 }
