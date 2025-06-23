@@ -77,7 +77,7 @@ class TrayMenuController{
         this.tray.Add("防止自动锁屏", (*)=>this.TogglePreventLock())
         this.tray.Add("黑屏 Shift+ESC", (*)=>this.ToggleBlackout())
         this.tray.add   ;seperator
-        this.tray.add("停用热键",(*)=>Suspend())
+        this.tray.add("停用热键",(*)=>this.ToggleSuspend())
         this.tray.Add("退出", (*)=>ExitApp())
     }
 
@@ -128,6 +128,13 @@ class TrayMenuController{
             ,cloak.Move(x, y, w, h)                               ; Resize it to fill the monitor
             return cloak                                          ; Return gui object
         }
+    }
+
+    /** @description 切换停用热键功能开关 */
+    ToggleSuspend(*) {
+        TraySetIcon(,,1)    ;freeze icon
+        Suspend(-1)
+        this.tray.ToggleCheck("停用热键")
     }
     
 }
