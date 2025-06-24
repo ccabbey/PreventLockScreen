@@ -152,6 +152,7 @@ class TrayMenuController {
             if UserHasLocked {
                 OutputDebug A_ThisFunc ': 用户重新登陆了系统...'
                 UserHasLocked := false
+                Prompted := false
                 if NeedRecover && this.AutoRecover_On {
                     OutputDebug A_ThisFunc ': 正在恢复防止锁屏功能...'
                     this.TogglePreventLock()
