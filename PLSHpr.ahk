@@ -39,6 +39,12 @@ class TrayMenuController{
         this.tray:=A_TrayMenu
         this.cloaks:=[]
 
+        ; 智能恢复功能
+        this.AutoRecover_On:=false
+        this.UserLocked:=false
+        this.UserLogon:=false
+        this.RestorePreventLock:=false
+
         ; 此处需要先保存成员方法的回调对象，以保证将来SetTimer在同一个回调上操作
         this.MoveCursorCallback := (*) => this.MoveCursor()
         this.LockStateServiceCallback:=(*) => this.LockStateService()
@@ -165,5 +171,11 @@ class TrayMenuController{
             DllCall("User32\CloseDesktop","ptr",h)
             return true
         }
+
+        Valid(var)=>IsSet(var)&&var   
     }
 }
+
+
+
+
