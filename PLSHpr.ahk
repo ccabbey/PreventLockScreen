@@ -1,6 +1,9 @@
 /************************************************************************
  * @description 
  * @author 
+ * @date 2025/07/04
+ * @version 1.5.0
+ *  - 功能: 增加置顶活动窗口的功能
  * @date 2025/06/23
  * @version 1.4.0
  *  - 优化: 用户手动锁屏并重登录后，防止锁屏功能将恢复锁屏前的状态
@@ -16,18 +19,21 @@
 
 #requires AutoHotkey v2.0
 
-VERSION := "锁屏助手 v1.4.0"
+VERSION := "锁屏助手 v1.5.0"
 A_IconTip := VERSION
 
 Persistent
+#SingleInstance Force
 
 ctl := TrayMenuController()
 ctl.InitTrayMenu()
 SetTimer(ctl.LockStateServiceCallback, 1000)
-TrayTip "后台待命中`r`n使用托盘菜单右键操作", "锁屏助手", 1
 SetTimer () => TrayTip(), -2000
+TrayTip "后台待命中`r`n使用托盘菜单右键操作", "锁屏助手", 1
 
-+ESC:: ctl.ToggleBlackout()
+
++ESC:: ctl.ToggleBlackout() ;Shift+ESC
+^+!A:: ctl.ToggleTopmost()  ;ctrl+shift+alt+A
 
 class TrayMenuController {
 
@@ -56,6 +62,9 @@ class TrayMenuController {
         this.tray.Add("防止自动锁屏", (*) => this.TogglePreventLock())
         this.tray.Add("黑屏 Shift+ESC", (*) => this.ToggleBlackout())
         this.tray.add   ;seperator
+        this.tray.Add('置顶窗口 Ctrl+Shift+Alt+A',(*)=>this.ToggleTopmost())
+        this.tray.Disable('置顶窗口 Ctrl+Shift+Alt+A')
+        this.tray.add   ;seperator
         this.tray.Add('智能恢复', (*) => this.ToggleAutoRecover())
         this.tray.add("停用热键", (*) => this.ToggleSuspend())
         this.tray.Add("退出", (*) => ExitApp())
@@ -69,13 +78,13 @@ class TrayMenuController {
             SetTimer(this.moveCursorCallback, 60000) ;def:60000
             this.tray.ToggleCheck('防止自动锁屏')
             TrayTip("自动锁屏已禁用", "注意", 1)
-            SetTimer(() => TrayTip(), -2000)
+            SetTimer(() => TrayTip(), -1000)
         }
         else {
             SetTimer(this.moveCursorCallback, 0)
             this.tray.ToggleCheck('防止自动锁屏')
             TrayTip("自动锁屏已恢复", "注意", 1)
-            SetTimer(() => TrayTip(), -2000)
+            SetTimer(() => TrayTip(), -1000)
         }
     }
 
@@ -168,4 +177,37 @@ class TrayMenuController {
             return true
         }
     }
+
+    /**
+     * 切换当前活动窗口的置顶状态。
+     * @param {String} winTitle 需要切换置顶状态的窗口标题，默认为当前活动窗口。
+     */
+    ToggleTopmost(winTitle:='A'){
+        ;通过 WinGetExStyle 获取窗口的扩展样式，然后判断是否包含 WS_EX_TOPMOST（值为 0x00000008），来判断窗口是否为“置顶”状态
+        try{
+            winTitle:=WinGetTitle(winTitle)
+        }
+        catch{
+            msgbox '请使用Ctcl+Shift+Alt+A组合键来切换窗口置顶。`r`n 点击菜单中的程序名称也可以取消置顶。','提示'
+            return
+        }
+        winName:=WinGetProcessName(winTitle)
+        exStyle := WinGetExStyle(winTitle)
+        if (exStyle & 0x8 != 0){    ; 0x8 即 WS_EX_TOPMOST
+            WinSetAlwaysOnTop(0,winTitle)
+            try 
+                this.tray.delete(winName)
+            catch
+                Sleep -1    ; 如果窗口在程序启动前已经置顶，那么就无Menu项可删
+            TrayTip(winName '`r`n 已取消置顶')
+            SetTimer(() => TrayTip(), -1000)
+        }  
+        else{
+            WinSetAlwaysOnTop(1,winTitle)
+            this.tray.Insert('7&',winName,(*)=>this.ToggleTopmost(winTitle))    ; 7&表示菜单从上向下第7个Item
+            TrayTip(winName '`r`n 已置顶')
+            SetTimer(() => TrayTip(), -1000)
+        }
+    }
+
 }
