@@ -49,7 +49,7 @@ class TrayMenuController {
         ; 此处需要先保存成员方法的回调对象，以保证将来SetTimer在同一个回调上操作
         this.MoveCursorCallback := (*) => this.MoveCursor()
         this.LockStateServiceCallback := (*) => this.LockStateService()
-        OutputDebug A_ThisFunc ': 托盘功能初始化完成...'
+       Debug A_ThisFunc, '托盘功能初始化完成...'
     }
 
     /** @description 修改托盘菜单，删除默认选项，增加功能选项和回调
@@ -73,7 +73,7 @@ class TrayMenuController {
     /** @description 切换防止自动锁屏功能开关 */
     TogglePreventLock(*) {
         this.PreventLock_On := !this.PreventLock_On
-        OutputDebug A_ThisFunc ': 切换功能开关 PreventLock_On = ' this.PreventLock_On
+       Debug A_ThisFunc, '切换功能开关 PreventLock_On = ' this.PreventLock_On
         if this.PreventLock_On {
             SetTimer(this.moveCursorCallback, 60000) ;def:60000
             this.tray.ToggleCheck('防止自动锁屏')
@@ -92,7 +92,7 @@ class TrayMenuController {
     MoveCursor() {
         MouseMove 1, 0, 1, 'R'  ;Move the mouse one pixel to the right
         MouseMove -1, 0, 1, 'R' ;Move the mouse back one pixel
-        OutputDebug A_ThisFunc ': 执行鼠标抖动操作...'
+       Debug A_ThisFunc, '执行鼠标抖动操作...'
     }
 
     /** @description 切换黑屏遮罩功能开关 */
@@ -148,22 +148,24 @@ class TrayMenuController {
         static Prompted := false
         if IsScreenLocked() {
             UserHasLocked := true
-            if !Prompted
-                OutputDebug(A_ThisFunc ': 检测到屏幕已锁定...'), Prompted := true
+            if !Prompted{
+                Debug A_ThisFunc, '检测到屏幕已锁定...'
+                Prompted := true
+            }
             ; 无论是否启用此功能，用户主动锁屏后，防止锁屏功能都会自动关闭。
             if this.PreventLock_On {
-                OutputDebug A_ThisFunc ': 关闭防止自动锁屏功能...'
+               Debug A_ThisFunc, '关闭防止自动锁屏功能...'
                 NeedRecover := true
                 this.TogglePreventLock()
             }
         }
         else {   ; user re-logon
             if UserHasLocked {
-                OutputDebug A_ThisFunc ': 用户重新登陆了系统...'
+               Debug A_ThisFunc, '用户重新登陆了系统...'
                 UserHasLocked := false
                 Prompted := false
                 if NeedRecover && this.AutoRecover_On {
-                    OutputDebug A_ThisFunc ': 正在恢复防止锁屏功能...'
+                   Debug A_ThisFunc, '正在恢复防止锁屏功能...'
                     this.TogglePreventLock()
                     NeedRecover := false
                 }
@@ -186,6 +188,8 @@ class TrayMenuController {
         ;通过 WinGetExStyle 获取窗口的扩展样式，然后判断是否包含 WS_EX_TOPMOST（值为 0x00000008），来判断窗口是否为“置顶”状态
         try{
             winTitle:=WinGetTitle(winTitle)
+            if winTitle=='Program Manager'  ; 桌面不能置顶
+                return
         }
         catch{
             msgbox '请使用Ctcl+Shift+Alt+A组合键来切换窗口置顶。`r`n 点击菜单中的程序名称也可以取消置顶。','提示'
@@ -210,4 +214,14 @@ class TrayMenuController {
         }
     }
 
+}
+
+
+/** @description
+ * 输出到控制台
+ * @param {String} caller 调用函数名
+ * @param {String} message Debug消息
+ */
+Debug(caller, message){
+    OutputDebug A_ScriptName ' => ' StrReplace(caller,'.Prototype','') ' => ' message
 }
