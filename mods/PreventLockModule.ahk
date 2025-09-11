@@ -9,8 +9,8 @@ class PreventLockModule {
 
     __new() {
         this.monitor := LockScreenMonitor()
-        this.monitor.OnScreenLocked := this.OnScreenLocked.Bind()
-        this.monitor.OnScreenUnlocked := this.OnScreenUnlocked.Bind()
+        this.monitor.OnScreenLockedCallback := this.OnScreenLocked.Bind()
+        this.monitor.OnScreenUnlockedCallback := this.OnScreenUnlocked.Bind()
 
         this.cursorTask := Task(ObjBindMethod(this, 'MoveCursor'), 60000)  ; 默认30秒移动一次鼠标
         this.enabled := false
@@ -29,7 +29,7 @@ class PreventLockModule {
 
     Disable() {
         if (this.enabled) {
-            this.preventLockTask.Stop()
+            this.cursorTask.Stop()
             this.monitor.Stop()
             this.enabled := false
         }
@@ -74,8 +74,8 @@ class PreventLockModule {
 
 class LockScreenMonitor {
     ;event callback
-    OnScreenLocked := unset
-    OnScreenUnlocked := unset
+    OnScreenLockedCallback := unset
+    OnScreenUnlockedCallback := unset
 
     __new() {
         this.monitorTask := Task(ObjBindMethod(this, 'MonitorTaskRoutine'), 1000)
@@ -103,9 +103,9 @@ class LockScreenMonitor {
 
             ; 触发特定事件
             if currentlyLocked
-                this.OnScreenLocked()
+                this.OnScreenLockedCallback()
             else
-                this.OnScreenUnlocked()
+                this.OnScreenUnlockedCallback()
         }
     }
 
