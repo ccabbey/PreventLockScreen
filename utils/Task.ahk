@@ -10,19 +10,25 @@ class Task {
         this.running := false
     }
 
+    /** 启动任务 */
     Start() {
         SetTimer(this.task, this.period)
         this.running := true
     }
 
+    /** 停止任务 */
     Stop() {
         SetTimer(this.task, 0)
         this.running := false
     }
+
+    /** 重新启动任务 */
     Restart() {
         this.Stop()
         this.Start()
     }
+
+    /** 修改任务的触发周期 */
     ChangePeriod(newPeriod) {
         this.period := newPeriod
         this.Stop()

@@ -14,10 +14,12 @@
 
 #requires AutoHotkey v2.0+
 
-#Include utils\Task.ahk
-#Include utils\Debug.ahk
+#Include core\LockScreenMonitor.ahk
 #include mods\BlackoutModule.ahk
 #include mods\PreventLockModule.ahk
+#Include mods\TopmostModule.ahk
+#Include utils\Task.ahk
+#Include utils\Debug.ahk
 
 VERSION := "锁屏助手 v1.6.0"
 A_IconTip := VERSION
@@ -30,21 +32,23 @@ app.InitTrayMenu()
 
 ;全局热键注册
 +ESC:: app.ToggleBlackout() ;Shift+ESC
-^+!A:: app.ToggleTopmost()  ;ctrl+shift+alt+A
+^+!A:: app.AddTopmost()  ;ctrl+shift+alt+A
 
 class AppController {
 
     __new() {
-        this.flags := {}
+
+        ;load services
+        this.monitor := LockScreenMonitor()
+        this.monitor.OnScreenLockedCallback := ObjBindMethod(this, 'Event_OnScreenLocked')
 
         ;load mods
         this.mods := {}
         this.mods.PreventLock := PreventLockModule()
-        this.mods.PreventLock.OnScreenLockedCallback := this.OnScreenLocked
-        this.mods.PreventLock.OnScreenUnlockedCallback := this.OnScreenUnlocked
-
         this.mods.Blackout := BlackoutModule()
-
+        this.mods.Topmost := TopmostModule()
+        this.mods.Topmost.OnSetTopmostCallback := ObjBindMethod(this, 'Event_OnSetTopmost')
+        this.mods.Topmost.OnCancelTopmostCallback := ObjBindMethod(this, 'Event_OnCancelTopmost')
     }
 
     /** @description 修改托盘菜单，删除默认选项，增加功能选项和回调
@@ -55,13 +59,16 @@ class AppController {
         this.tray.add(VERSION, (*) => {})
         this.tray.Disable(VERSION)
         this.tray.add   ;seperator
+
         this.tray.Add("防止自动锁屏", (*) => this.TogglePreventLock())
         this.tray.Add("黑屏 Shift+ESC", (*) => this.ToggleBlackout())
         this.tray.add   ;seperator
-        this.tray.Add('置顶窗口 Ctrl+Shift+Alt+A', (*) => this.ToggleTopmost())
-        this.tray.Disable('置顶窗口 Ctrl+Shift+Alt+A')
+
+        ;设置置顶窗口模块菜单
+        this.tray.topmost := Menu()
+        this.tray.add('置顶窗口', this.tray.topmost)
+
         this.tray.add   ;seperator
-        this.tray.Add('智能恢复', (*) => this.ToggleAutoRecover())
         this.tray.add("停用热键", (*) => this.ToggleSuspend())
         this.tray.Add("退出", (*) => ExitApp())
 
@@ -72,25 +79,17 @@ class AppController {
     /** @description 切换防止自动锁屏功能开关 */
     TogglePreventLock(*) {
         this.mods.PreventLock.toggle()
+        this.tray.ToggleCheck('3&')
         if this.mods.PreventLock.enabled {
-            this.tray.ToggleCheck('3&') ;防止自动锁屏
+            this.monitor.Start()
             TrayTip("自动锁屏已禁用", "注意", 1)
             SetTimer(() => TrayTip(), -1000)
         }
         else {
-            this.tray.ToggleCheck('3&') ;防止自动锁屏
+            this.monitor.Stop()
             TrayTip("自动锁屏已恢复", "注意", 1)
             SetTimer(() => TrayTip(), -1000)
         }
-    }
-
-    ;PreventLockModule的事件回调注册
-
-    OnScreenLocked() {
-        this.TogglePreventLock()
-    }
-    OnScreenUnlocked() {
-        this.TogglePreventLock()
     }
 
     /** @description 切换黑屏遮罩功能开关 */
@@ -112,45 +111,33 @@ class AppController {
         this.tray.ToggleCheck("停用热键")
     }
 
-    /** @description 切换智能恢复功能开关 */
-    ToggleAutoRecover(*) {
-        this.AutoRecover_On := !this.AutoRecover_On
-        this.tray.ToggleCheck('智能恢复')
+    /** 置顶当前活动窗口 */
+    AddTopmost() {
+        this.mods.Topmost.SetTopmost('A')
     }
 
-    /**
-     * 切换当前活动窗口的置顶状态。
-     * @param {String} winTitle 需要切换置顶状态的窗口标题，默认为当前活动窗口。
-     */
-    ToggleTopmost(winTitle := 'A') {
-
-        ;通过 WinGetExStyle 获取窗口的扩展样式，然后判断是否包含 WS_EX_TOPMOST（值为 0x00000008），来判断窗口是否为“置顶”状态
-        try {
-            winTitle := WinGetTitle(winTitle)
-            if winTitle == 'Program Manager'  ; 桌面不能置顶
-                return
-        }
-        catch {
-            msgbox '请使用Ctcl+Shift+Alt+A组合键来切换窗口置顶。`r`n 点击菜单中的程序名称也可以取消置顶。', '提示'
-            return
-        }
-        winName := WinGetProcessName(winTitle)
-        exStyle := WinGetExStyle(winTitle)
-        if (exStyle & 0x8 != 0) {    ; 0x8 即 WS_EX_TOPMOST
-            WinSetAlwaysOnTop(0, winTitle)
-            try
-                this.tray.delete(winName)
-            catch
-                Sleep -1    ; 如果窗口在程序启动前已经置顶，那么就无Menu项可删
-            TrayTip(winName '`r`n 已取消置顶')
-            SetTimer(() => TrayTip(), -1000)
-        }
-        else {
-            WinSetAlwaysOnTop(1, winTitle)
-            this.tray.Insert('7&', winName, (*) => this.ToggleTopmost(winTitle))    ; 7&表示菜单从上向下第7个Item
-            TrayTip(winName '`r`n 已置顶')
-            SetTimer(() => TrayTip(), -1000)
+    ;----------------
+    ;events callback
+    ;----------------
+    /** 锁屏事件回调方法 */
+    Event_OnScreenLocked(*) { ;如果不设置入参*，回调方法就不能正确的定位到AppController类，不知原理是什么
+        if this.mods.PreventLock.enabled {
+            this.TogglePreventLock()
+            this.monitor.Stop()
         }
     }
 
+    /** 设置窗口置顶回调方法 */
+    Event_OnSetTopmost(obj, winTitle) {
+        this.tray.topmost.add(wintitle, (*) => objBindMethod(this.mods.topmost, 'CancelTopMost'))
+        TrayTip(winTitle "已置顶", "提示", 1)
+        SetTimer(() => TrayTip(), -1000)
+    }
+
+    /** 取消窗口置顶回调方法 */
+    Event_OnCancelTopmost(obj, winTitle) {
+        this.tray.topmost.delete(wintitle)
+        TrayTip(winTitle "已取消置顶", "提示", 1)
+        SetTimer(() => TrayTip(), -1000)
+    }
 }
