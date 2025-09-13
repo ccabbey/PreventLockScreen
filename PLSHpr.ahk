@@ -33,6 +33,7 @@ app.InitTrayMenu()
 ;全局热键注册
 +ESC:: app.ToggleBlackout() ;Shift+ESC
 ^+!A:: app.AddTopmost()  ;ctrl+shift+alt+A
+^+!Z:: app.CancelTopmost()  ;ctrl+shift+alt+Z
 
 class AppController {
 
@@ -66,7 +67,7 @@ class AppController {
 
         ;设置置顶窗口模块菜单
         this.tray.topmost := Menu()
-        this.tray.add('置顶窗口', this.tray.topmost)
+        this.tray.add('当前置顶窗口', this.tray.topmost)
 
         this.tray.add   ;seperator
         this.tray.add("停用热键", (*) => this.ToggleSuspend())
@@ -94,8 +95,7 @@ class AppController {
 
     /** @description 切换黑屏遮罩功能开关 */
     ToggleBlackout(*) {
-        this.mods.blackout.enabled := this.mods.blackout.enabled
-        if this.mods.blackout.enabled
+        if !this.mods.blackout.enabled
             this.mods.blackout.Enable()
         else
             this.mods.blackout.Disable()
@@ -116,11 +116,16 @@ class AppController {
         this.mods.Topmost.SetTopmost('A')
     }
 
+    CancelTopmost() {
+        this.mods.Topmost.CancelTopmost()
+    }
+
     ;----------------
     ;events callback
     ;----------------
+
     /** 锁屏事件回调方法 */
-    Event_OnScreenLocked(*) { ;如果不设置入参*，回调方法就不能正确的定位到AppController类，不知原理是什么
+    Event_OnScreenLocked(*) { ;如果不设置任意入参*，则回调方法就不能正确的定位到AppController类，不知原理是什么
         if this.mods.PreventLock.enabled {
             this.TogglePreventLock()
             this.monitor.Stop()
@@ -129,7 +134,7 @@ class AppController {
 
     /** 设置窗口置顶回调方法 */
     Event_OnSetTopmost(obj, winTitle) {
-        this.tray.topmost.add(wintitle, (*) => objBindMethod(this.mods.topmost, 'CancelTopMost'))
+        this.tray.topmost.add(wintitle, objBindMethod(this.mods.topmost, 'CancelTopMost', winTitle))
         TrayTip(winTitle "已置顶", "提示", 1)
         SetTimer(() => TrayTip(), -1000)
     }

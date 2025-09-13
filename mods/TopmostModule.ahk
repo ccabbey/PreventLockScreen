@@ -20,7 +20,7 @@ class TopmostModule {
             return
         exStyle := WinGetExStyle(winTitle)
         WinSetAlwaysOnTop(1, winTitle)
-
+        this.activeWinTitle := winTitle
         this.OnSetTopmostCallback(winTitle)
     }
 
