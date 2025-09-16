@@ -12,7 +12,7 @@ class TopmostModule {
 
     SetTopmost(winTitle := 'A') {
         if this.activeWinTitle != '' {
-            this.CancelTopMost
+            this.CancelTopMost()
         }
         ;通过 WinGetExStyle 获取窗口的扩展样式，然后判断是否包含 WS_EX_TOPMOST（值为 0x00000008），来判断窗口是否为“置顶”状态
         winTitle := WinGetTitle(winTitle)

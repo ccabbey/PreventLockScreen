@@ -89,12 +89,12 @@ class AppController {
         if this.mods.PreventLock.enabled {
             this.monitor.Start()
             TrayTip("自动锁屏已禁用", "注意", 1)
-            SetTimer(() => TrayTip(), -1000)
+            SetTimer(() => TrayTip(), -2000)
         }
         else {
             this.monitor.Stop()
             TrayTip("自动锁屏已恢复", "注意", 1)
-            SetTimer(() => TrayTip(), -1000)
+            SetTimer(() => TrayTip(), -2000)
         }
     }
 
@@ -141,13 +141,13 @@ class AppController {
     Event_OnSetTopmost(obj, winTitle) {
         this.tray.topmost.add(wintitle, objBindMethod(this.mods.topmost, 'CancelTopMost', winTitle))
         TrayTip(winTitle "已置顶", "提示", 1)
-        SetTimer(() => TrayTip(), -1000)
+        SetTimer(() => TrayTip(), -2000)
     }
 
     /** 取消窗口置顶回调方法 */
     Event_OnCancelTopmost(obj, winTitle) {
         this.tray.topmost.delete(wintitle)
-        TrayTip(winTitle "已取消置顶", "提示", 1)
-        SetTimer(() => TrayTip(), -1000)
+        ;TrayTip(winTitle "已取消置顶", "提示", 1)
+        ;SetTimer(() => TrayTip(), -2000)
     }
 }
