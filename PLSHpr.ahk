@@ -1,4 +1,6 @@
 /************************************************************************
+ * @version v1.6.1 @2025/9/26
+ *  - 修复: 修复了锁屏后屏幕仍然定时被唤醒的错误 
  * @version v1.6.0 @2025/9/15
  *  - 优化: 重构了程序框架，主要功能模块化
  *  - 功能: 移除了智能恢复功能
@@ -26,7 +28,7 @@
 #Include utils\Task.ahk
 #Include utils\Debug.ahk
 
-VERSION := "锁屏助手 v1.6.0"
+VERSION := "锁屏助手 v1.6.1"
 A_IconTip := VERSION
 
 Persistent
@@ -88,12 +90,12 @@ class AppController {
         this.tray.ToggleCheck('3&')
         if this.mods.PreventLock.enabled {
             this.monitor.Start()
-            TrayTip("自动锁屏已禁用", "注意", 1)
+            TrayTip("防锁屏功能已启用", "注意", 1)
             SetTimer(() => TrayTip(), -2000)
         }
         else {
             this.monitor.Stop()
-            TrayTip("自动锁屏已恢复", "注意", 1)
+            TrayTip("防锁屏功能已禁用", "注意", 1)
             SetTimer(() => TrayTip(), -2000)
         }
     }
@@ -130,10 +132,22 @@ class AppController {
     ;----------------
 
     /** 锁屏事件回调方法 */
+    ;;已确认此实现会导致锁屏后屏幕仍然周期性点亮，但具体原因不明，大概率是TogglePreventLock方法有某种bug
+    ;Event_OnScreenLocked(*) { ;如果不设置任意入参*，则回调方法就不能正确的定位到AppController类，不知原理是什么
+    ;    DebugLog A_ThisFunc, "收到锁屏事件通知"
+    ;    if this.mods.PreventLock.enabled {
+    ;        this.TogglePreventLock()
+    ;        ;this.monitor.Stop()
+    ;        DebugLog A_ThisFunc, "已执行锁屏后处理任务"
+    ;    }
+    ;}
     Event_OnScreenLocked(*) { ;如果不设置任意入参*，则回调方法就不能正确的定位到AppController类，不知原理是什么
+        DebugLog A_ThisFunc, "收到锁屏事件通知"
         if this.mods.PreventLock.enabled {
-            this.TogglePreventLock()
+            this.mods.PreventLock.Disable
             this.monitor.Stop()
+            this.tray.ToggleCheck('3&')
+            DebugLog A_ThisFunc, "已执行锁屏后处理任务"
         }
     }
 

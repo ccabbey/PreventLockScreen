@@ -8,18 +8,27 @@ class LockScreenMonitor {
     __new() {
         this.monitorTask := Task(ObjBindMethod(this, 'MonitorTaskRoutine'), 1000)
         this.isLocked := false
+        this.running := false
     }
 
     Start() {
         this.monitorTask.Start()
+        this.running := true
+        DebugLog A_ThisFunc, "开始运行锁屏检测服务"
     }
 
     Stop() {
-        this.monitorTask.Stop()
+        if this.running {
+            this.monitorTask.Stop()
+            this.running := false
+            DebugLog A_ThisFunc, "停止运行锁屏检测服务"
+        }
+
     }
 
     /** 监视任务流程 */
     MonitorTaskRoutine() {
+        ;DebugLog A_ThisFunc, "检查当前锁屏状态..."
         currentlyLocked := this.CheckLockScreen()
 
         ; 检测锁屏状态变化
