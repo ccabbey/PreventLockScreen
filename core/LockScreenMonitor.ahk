@@ -1,12 +1,13 @@
 #Requires AutoHotkey v2.0
 #Include ..\utils\Task.ahk
+#Include ..\utils\Debug.ahk
 
 class LockScreenMonitor {
     /** 父级注册的锁屏事件回调方法 */
     OnScreenLockedCallback := unset
 
     __new() {
-        this.monitorTask := Task(ObjBindMethod(this, 'MonitorTaskRoutine'), 1000)
+        this.monitorTask := Task(ObjBindMethod(this, 'MonitorTaskRoutine'), 10000)
         this.isLocked := false
         this.running := false
     }
