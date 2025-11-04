@@ -1,4 +1,6 @@
 /************************************************************************
+ * @version v1.6.2 @2025/11/18
+ *  - 优化: 内置了一个最大闲置时间120min的限制，防止用户忘记关闭防锁屏功能导致屏幕长时间点亮 
  * @version v1.6.1 @2025/9/26
  *  - 修复: 修复了锁屏后屏幕仍然定时被唤醒的错误 
  * @version v1.6.0 @2025/9/15
@@ -22,13 +24,14 @@
 #requires AutoHotkey v2.0+
 
 #Include core\LockScreenMonitor.ahk
+#Include core\IdleTimeMonitor.ahk
 #include mods\BlackoutModule.ahk
 #include mods\PreventLockModule.ahk
 #Include mods\TopmostModule.ahk
 #Include utils\Task.ahk
 #Include utils\Debug.ahk
 
-VERSION := "锁屏助手 v1.6.1"
+VERSION := "锁屏助手 v1.6.2"
 A_IconTip := VERSION
 
 Persistent
@@ -47,9 +50,12 @@ class AppController {
     __new() {
 
         ;load services
-        this.monitor := LockScreenMonitor()
-        this.monitor.OnScreenLockedCallback := ObjBindMethod(this, 'Event_OnScreenLocked')
+        this.services := {}
+        this.services.lockscreenMonitor := LockScreenMonitor()
+        this.services.lockscreenMonitor.OnScreenLockedCallback := ObjBindMethod(this, 'Event_OnScreenLocked')
 
+        this.services.idleMonitor := IdleTimeMonitor()
+        this.services.idleMonitor.OnMaxIdleTimeReachedCallback := ObjBindMethod(this, 'Event_OnMaxIdleTimeReached')
         ;load mods
         this.mods := {}
         this.mods.PreventLock := PreventLockModule()
@@ -89,12 +95,15 @@ class AppController {
         this.mods.PreventLock.toggle()
         this.tray.ToggleCheck('3&')
         if this.mods.PreventLock.enabled {
-            this.monitor.Start()
+            ; 启动锁屏状态监视服务
+            this.services.lockscreenMonitor.Start()
+            ;启动闲置时间监视服务
+            this.services.idleMonitor.Start()
             TrayTip("防锁屏功能已启用", "注意", 1)
             SetTimer(() => TrayTip(), -2000)
         }
         else {
-            this.monitor.Stop()
+            this.services.lockscreenMonitor.Stop()
             TrayTip("防锁屏功能已禁用", "注意", 1)
             SetTimer(() => TrayTip(), -2000)
         }
@@ -137,7 +146,7 @@ class AppController {
     ;    DebugLog A_ThisFunc, "收到锁屏事件通知"
     ;    if this.mods.PreventLock.enabled {
     ;        this.TogglePreventLock()
-    ;        ;this.monitor.Stop()
+    ;        ;this.services.lockscreenMonitor.Stop()
     ;        DebugLog A_ThisFunc, "已执行锁屏后处理任务"
     ;    }
     ;}
@@ -145,7 +154,7 @@ class AppController {
         DebugLog A_ThisFunc, "收到锁屏事件通知"
         if this.mods.PreventLock.enabled {
             this.mods.PreventLock.Disable
-            this.monitor.Stop()
+            this.services.lockscreenMonitor.Stop()
             this.tray.ToggleCheck('3&')
             DebugLog A_ThisFunc, "已执行锁屏后处理任务"
         }
@@ -164,6 +173,33 @@ class AppController {
         this.tray.topmost.delete(wintitle)
         ;TrayTip(winTitle "已取消置顶", "提示", 1)
         ;SetTimer(() => TrayTip(), -2000)
+    }
 
+    Event_OnMaxIdleTimeReached(*) {
+        DebugLog A_ThisFunc, "收到最大闲置时间触发通知"
+        this.services.idleMonitor.Stop()
+        if this.mods.PreventLock.enabled {
+            this.mods.PreventLock.Disable()
+            this.services.lockscreenMonitor.Stop()
+            this.tray.ToggleCheck('3&')
+            DebugLog A_ThisFunc, "由于达到了最大闲置时间限制，已自动取消防止锁屏功能和检测服务"
+            MsgBox("Lockscreen module has been disabled because MaxIdleTime has reached.")
+        }
+
+    }
+}
+
+;TODO blackout模块：右键菜单检查显示器数量，分别设置黑屏
+OnMessage(0x0404, TrayNotification) ; AHK_NOTIFYICON
+
+TrayNotification(wParam, lParam, *) {
+    if (lParam == 0x0204) { ; WM_RBUTTONDOWN
+        ; 处理右键按下事件
+        OutputDebug("托盘图标右键按下")
+    }
+    else if (lParam == 0x0205) { ; WM_RBUTTONUP
+        ; 处理右键释放事件
+        OutputDebug("托盘图标右键释放")
+        ; 在这里添加你的自定义处理代码
     }
 }

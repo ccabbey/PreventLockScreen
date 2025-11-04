@@ -7,7 +7,7 @@ class PreventLockModule {
 
     __new() {
         /** 光标抖动任务 */
-        this.cursorTask := Task(ObjBindMethod(this, 'MoveCursor'), 60000)  ; 默认30秒移动一次鼠标
+        this.cursorTask := Task(ObjBindMethod(this, 'MoveCursor'), 60000)  ; 默认60秒移动一次鼠标
         /** 模块启用状态Flag */
         this.enabled := false
     }
@@ -41,5 +41,7 @@ class PreventLockModule {
         MouseMove 1, 0, 1, 'R'   ; Move the mouse one pixel to the right
         MouseMove -1, 0, 1, 'R'  ; Move the mouse back one pixel
         DebugLog A_ThisFunc, "已执行光标抖动动作"
+        ;MouseGetPos(&X, &Y)
+        ;DebugLog A_ThisFunc, "当前坐标: " X ', ' Y
     }
 }
