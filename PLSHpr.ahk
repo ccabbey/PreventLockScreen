@@ -1,4 +1,6 @@
 /************************************************************************
+ * @version v1.6.3 @2025/11/20
+ *  - 优化: 托盘菜单新增选项，黑屏遮罩功能可以指定所有显示器或某个单独的显示器
  * @version v1.6.2 @2025/11/18
  *  - 优化: 内置了一个最大闲置时间120min的限制，防止用户忘记关闭防锁屏功能导致屏幕长时间点亮 
  * @version v1.6.1 @2025/9/26
@@ -31,7 +33,7 @@
 #Include utils\Task.ahk
 #Include utils\Debug.ahk
 
-VERSION := "锁屏助手 v1.6.2"
+VERSION := "锁屏助手 v1.6.3"
 A_IconTip := VERSION
 
 Persistent
@@ -59,10 +61,13 @@ class AppController {
         ;load mods
         this.mods := {}
         this.mods.PreventLock := PreventLockModule()
+
         this.mods.Blackout := BlackoutModule()
+
         this.mods.Topmost := TopmostModule()
         this.mods.Topmost.OnSetTopmostCallback := ObjBindMethod(this, 'Event_OnSetTopmost')
         this.mods.Topmost.OnCancelTopmostCallback := ObjBindMethod(this, 'Event_OnCancelTopmost')
+
     }
 
     /** @description 修改托盘菜单，删除默认选项，增加功能选项和回调
@@ -75,7 +80,10 @@ class AppController {
         this.tray.add   ;seperator
 
         this.tray.Add("防止自动锁屏", (*) => this.TogglePreventLock())
-        this.tray.Add("黑屏 Shift+ESC", (*) => this.ToggleBlackout())
+
+        this.tray.blackout := Menu()
+        this.tray.Blackout.add("设置目标显示器", ObjBindMethod(this.mods.blackout, "SetTargetMonitor"))
+        this.tray.Add("黑屏 Shift+ESC", this.tray.blackout)
         this.tray.add   ;seperator
 
         ;设置置顶窗口模块菜单
@@ -187,19 +195,5 @@ class AppController {
         }
 
     }
-}
 
-;TODO blackout模块：右键菜单检查显示器数量，分别设置黑屏
-OnMessage(0x0404, TrayNotification) ; AHK_NOTIFYICON
-
-TrayNotification(wParam, lParam, *) {
-    if (lParam == 0x0204) { ; WM_RBUTTONDOWN
-        ; 处理右键按下事件
-        OutputDebug("托盘图标右键按下")
-    }
-    else if (lParam == 0x0205) { ; WM_RBUTTONUP
-        ; 处理右键释放事件
-        OutputDebug("托盘图标右键释放")
-        ; 在这里添加你的自定义处理代码
-    }
 }
