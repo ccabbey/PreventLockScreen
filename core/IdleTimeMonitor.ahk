@@ -39,6 +39,7 @@ class IdleTimeMonitor {
         this.LastMousePosY := Y
         this.CachedTimeStamp := A_TickCount
         this.CurrentIdleTime := 0
+        this.MaxIdleTime := IniRead(this.ConfigFile, 'IdleTimeMonitor', 'MaxIdleTime')
 
         this.monitorTask.Start()
         this.running := true
