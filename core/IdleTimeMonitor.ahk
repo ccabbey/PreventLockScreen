@@ -6,12 +6,14 @@
 class IdleTimeMonitor {
     /** 父级注册的锁屏事件回调方法 */
     OnMaxIdleTimeReachedCallback := unset
-
-    ConfigFile := A_AppData '\PLSHpr.ini'
+    DirPath := A_AppData '\PLSHpr\'
+    ConfigFile := this.DirPath 'PLSHpr.ini'
 
     __new() {
 
         ;检查配置文件
+        if !DirExist(this.DirPath)
+            DirCreate(this.DirPath)
         if !FileExist(this.ConfigFile) {
             content := "[IdleTimeMonitor]`n"
             content .= 'MaxIdleTime = 120'
