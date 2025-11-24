@@ -1,9 +1,8 @@
 #Requires AutoHotkey v2.0
-#Include ..\utils\Task.ahk
-#Include ..\utils\Debug.ahk
+#Include ServiceBase.ahk
 
 ;通过鼠标坐标变化来判断电脑是否处在Idle状态
-class IdleTimeMonitor {
+class IdleTimeMonitor extends ServiceBase {
     /** 父级注册的锁屏事件回调方法 */
     OnMaxIdleTimeReachedCallback := unset
     DirPath := A_AppData '\PLSHpr\'
