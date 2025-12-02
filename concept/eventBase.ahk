@@ -1,10 +1,5 @@
 #Requires AutoHotkey v2.0
 
-;legacy function, use Log() instead
-DebugLog(caller, message) {
-    OutputDebug A_ScriptName ' => ' StrReplace(caller, '.Prototype', '') ' => ' message
-}
-
 Log(message) {
     caller := GetCallerName()
     OutputDebug A_ScriptName ' => ' caller ' => ' message

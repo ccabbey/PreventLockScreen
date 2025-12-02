@@ -7,6 +7,7 @@ class TrayMenuController {
         this.TrayMenuSetup()
         this.configMenu := Menu()
         this.tray.Add('设置', this.configMenu)
+        A_IconTip := appVersion
     }
 
     TrayMenuSetup() {

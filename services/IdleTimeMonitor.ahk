@@ -1,27 +1,19 @@
 #Requires AutoHotkey v2.0
 #Include ServiceBase.ahk
+#Include ..\mods\ModuleBase.ahk
 
-;通过鼠标坐标变化来判断电脑是否处在Idle状态
+; 系统闲置状态检测服务
 class IdleTimeMonitor extends ServiceBase {
-    /** 父级注册的锁屏事件回调方法 */
-    OnMaxIdleTimeReachedCallback := unset
-    DirPath := A_AppData '\PLSHpr\'
-    ConfigFile := this.DirPath 'PLSHpr.ini'
-
     __new() {
+        ; setup interface
 
-        ;检查配置文件
-        if !DirExist(this.DirPath)
-            DirCreate(this.DirPath)
-        if !FileExist(this.ConfigFile) {
-            content := "[IdleTimeMonitor]`n"
-            content .= 'MaxIdleTime = 120'
-            FileAppend(content, this.ConfigFile)
-        }
+        this.IConfig := this.UseConfig()
+        this.ReadConfig()
+
         this.monitorTask := Task(ObjBindMethod(this, 'MonitorTaskRoutine'), 60000)
         this.running := false
         ; 最大闲置运行时间限制，单位min
-        this.MaxIdleTime := IniRead(this.ConfigFile, 'IdleTimeMonitor', 'MaxIdleTime')
+        this.MaxIdleTime := this.IConfig.GetConfigValue(this.ServiceName, 'MaxIdleTime')
         ; 当前闲置时间，单位min
         this.CurrentIdleTime := 0
         ; 当前服务启动时间戳，单位ms（windows内置计时器）
@@ -31,6 +23,10 @@ class IdleTimeMonitor extends ServiceBase {
         this.LastMousePosY := unset
     }
 
+    ReadConfig() {
+        this.MaxIdleTime := this.IConfig.GetConfigValue(this.ServiceName, 'MaxIdleTime')
+    }
+
     Start() {
         ; 启动服务时先初始化成员变量
         MouseGetPos(&X, &Y)
@@ -38,7 +34,7 @@ class IdleTimeMonitor extends ServiceBase {
         this.LastMousePosY := Y
         this.CachedTimeStamp := A_TickCount
         this.CurrentIdleTime := 0
-        this.MaxIdleTime := IniRead(this.ConfigFile, 'IdleTimeMonitor', 'MaxIdleTime')
+        this.ReadConfig()
 
         this.monitorTask.Start()
         this.running := true
@@ -78,8 +74,25 @@ class IdleTimeMonitor extends ServiceBase {
 
         ;检查是否到达最大闲置时间
         if this.CurrentIdleTime > this.MaxIdleTime {
-            this.OnMaxIdleTimeReachedCallback()
+            DebugLog A_ThisFunc, "最大闲置时间条件触发"
+            this.Stop()
+            preventLockMod := this.UseModule('PreventLockModule')
+            if preventLockMod.enabled {
+                preventLockMod.Disable()
+            }
+
+            lockScreenSvc := this.UseService('LockScreenMonitor')
+            lockScreenSvc.Stop()
+
+            tray := this.UseTrayMenu()
+            tray.ToggleCheck('防止自动锁屏')
+
+            DebugLog A_ThisFunc, "由于达到了最大闲置时间限制，已自动取消防止锁屏功能和检测服务"
+            MsgBox("由于达到了最大闲置时间限制，已自动取消防止锁屏功能和检测服务")
         }
     }
 
+    OnMaxIdleTimeReached() {
+
+    }
 }

@@ -3,13 +3,25 @@
 #Include ..\utils\Task.ahk
 #Include ..\utils\Debug.ahk
 
+; 服务基类，提供主模块和定时任务的接口
 class ServiceBase {
-    appInterface := unset
-    ServiceName := ''
 
     __new() {
+        this.appInterface := unset
         this.serviceName := this.__Class
+        this.monitorTask :=
     }
+
+    ;===TaskRoutine Interfaces===
+    Start() {
+
+    }
+
+    Stop() {
+
+    }
+
+    ;===AppInterface Interfaces===
 
     SetAppInterface(interface) {
         this.appInterface := interface
@@ -46,4 +58,11 @@ class ServiceBase {
         }
         return unset
     }
+    UseConfig() {
+        if (this.HasInterface()) {
+            return this.appInterface.UseConfig()
+        }
+        return unset
+    }
+
 }

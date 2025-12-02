@@ -1,8 +1,5 @@
 #Requires AutoHotkey v2.0
-/** @class
- * Task类对SetTimer进行了封装，可以延后运行。  
- * 还提供了一些辅助功能。
- */
+
 class Task {
     __new(callback, period) {
         this.task := callback
