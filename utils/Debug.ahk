@@ -7,12 +7,12 @@ DebugLog(caller, message) {
 
 Log(message) {
     caller := GetCallerName()
-    OutputDebug A_ScriptName ' => ' caller ' => ' message
+    OutputDebug A_ScriptName ' => ' StrReplace(caller, '.Prototype', '') ' => ' message
 }
 
 GetCallerName() {
     try {
-        throw
+        throw Error()
     } catch as e {
         ; 在调用栈中查找合适的调用者
         stack := e.Stack

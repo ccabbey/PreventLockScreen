@@ -1,6 +1,4 @@
 #Requires AutoHotkey v2.0
-#Include ..\utils\Task.ahk
-#Include ..\utils\Debug.ahk
 
 class LockScreenMonitor {
     /** 父级注册的锁屏事件回调方法 */

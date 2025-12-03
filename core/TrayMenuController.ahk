@@ -1,5 +1,7 @@
 #Requires AutoHotkey v2.0
 
+#Include ..\AutoInclude.ahk
+
 class TrayMenuController {
     __new(appVersion) {
         this.appVersion := appVersion
